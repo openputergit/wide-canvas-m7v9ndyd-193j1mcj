@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethereum Block Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">Ethereum Block Explorer</h1>
+            <p class="text-slate-600">Explore Ethereum addresses and their transactions</p>
+        </header>
+
+        <!-- Search Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="addressInput" placeholder="Enter Ethereum Address" 
+                    class="flex-1 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="searchAddress()" 
+                    class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                    <i class="bi bi-search me-2"></i>Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Balance Card -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-800">Balance</h2>
+                    <p id="balance" class="text-2xl font-bold text-blue-500"></p>
+                </div>
+                <!-- Transaction Count Card -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-800">Transaction Count</h2>
+                    <p id="txCount" class="text-2xl font-bold text-blue-500"></p>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4 text-slate-800">Recent Transactions</h2>
+                <div id="transactions" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden">
+            <div class="flex justify-center items-center p-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span id="errorMessage" class="block sm:inline"></span>
+        </div>
+    </div>
+
+    <script>
+        const provider = new ethers.providers.JsonRpcProvider('https://mainnet.infura.io/v3/your-infura-key');
+
+        async function searchAddress() {
+            const address = document.getElementById('addressInput').value;
+            if (!ethers.utils.isAddress(address)) {
+                showError('Invalid Ethereum address');
+                return;
+            }
+
+            showLoading();
+            hideError();
+
+            try {
+                const [balance, txCount] = await Promise.all([
+                    provider.getBalance(address),
+                    provider.getTransactionCount(address)
+                ]);
+
+                document.getElementById('balance').textContent = `${ethers.utils.formatEther(balance)} ETH`;
+                document.getElementById('txCount').textContent = txCount;
+
+                // Get recent transactions (simplified version)
+                const blockNumber = await provider.getBlockNumber();
+                const transactions = [];
+                const txContainer = document.getElementById('transactions');
+                txContainer.innerHTML = '';
+
+                // Display transactions
+                if (transactions.length === 0) {
+                    txContainer.innerHTML = `
+                        <div class="text-slate-600 text-center py-4">
+                            No recent transactions found
+                        </div>
+                    `;
+                }
+
+                document.getElementById('results').classList.remove('hidden');
+            } catch (error) {
+                showError('Error fetching address data');
+                console.error(error);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            document.getElementById('errorMessage').textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.add('hidden');
+        }
+
+        // Handle enter key in search input
+        document.getElementById('addressInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchAddress();
+            }
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
